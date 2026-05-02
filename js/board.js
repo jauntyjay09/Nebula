@@ -1,82 +1,85 @@
 /* Nebula — Kanban Board */
+import Store from './store.js';
+import { escapeHTML, h } from './utils.js';
+import { Validation } from './validation.js';
+import App from './app.js';
+
 const Board = {
   filter: 'all',
+  draggedTaskId: null,
 
   init() {
     this.render();
     this.bindFilters();
+    this.attachEvents();
   },
 
-  render() {
-    const columns = [
-      { id: 'todo', name: 'To Do', color: 'var(--text-tertiary)', status: 'todo' },
-      { id: 'progress', name: 'In Progress', color: 'var(--primary)', status: 'progress' },
-      { id: 'review', name: 'In Review', color: 'var(--warning)', status: 'review' },
-      { id: 'done', name: 'Done', color: 'var(--success)', status: 'done' }
-    ];
+  attachEvents() {
+    const board = document.getElementById('board-columns');
+    if (!board) return;
 
-    const container = document.getElementById('board-columns');
-    container.innerHTML = columns.map(col => {
-      const tasks = Store.getTasksByStatus(col.status).filter(t => this.matchesFilter(t));
-      return `
-        <div class="board-column" data-status="${col.status}"
-             ondragover="Board.onDragOver(event)" ondrop="Board.onDrop(event, '${col.status}')"
-             ondragleave="Board.onDragLeave(event)">
-          <div class="column-header">
-            <div class="column-title">
-              <span class="column-dot" style="background:${col.color}"></span>
-              <span class="column-name">${col.name}</span>
-              <span class="column-count">${tasks.length}</span>
-            </div>
-          </div>
-          <div class="column-cards" data-status="${col.status}">
-            ${tasks.map(t => this.renderCard(t)).join('')}
-          </div>
-          <button class="column-add-btn" onclick="Board.openCreateModal('${col.status}')">+ Add task</button>
-        </div>
-      `;
-    }).join('');
-  },
+    // Drag & Drop Efficiency
+    board.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.task-card');
+      if (card) {
+        this.draggedTaskId = card.dataset.id;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.draggedTaskId);
+      }
+    });
 
-  renderCard(task) {
-    const member = Store.getMember(task.assignee);
-    const dueDate = task.due ? new Date(task.due) : null;
-    const isOverdue = dueDate && dueDate < new Date() && task.status !== 'done';
-    const dueFmt = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    board.addEventListener('dragend', (e) => {
+      const card = e.target.closest('.task-card');
+      if (card) card.classList.remove('dragging');
+      this.draggedTaskId = null;
+    });
 
-    return `
-      <div class="task-card" draggable="true" data-id="${task.id}"
-           ondragstart="Board.onDragStart(event, '${task.id}')" ondragend="Board.onDragEnd(event)">
-        <div class="task-card-header">
-          <span class="task-card-title">${task.title}</span>
-          <span class="task-card-priority ${task.priority}">${task.priority}</span>
-        </div>
-        ${task.desc ? `<div class="task-card-desc">${task.desc}</div>` : ''}
-        ${task.tags && task.tags.length ? `<div class="task-card-tags">${task.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
-        <div class="task-card-footer">
-          <div class="task-card-assignee">
-            ${member ? `<div class="avatar avatar-sm" style="background:${member.color}">${member.initials}</div>
-            <span class="task-card-assignee-name">${member.name.split(' ')[0]}</span>` : ''}
-          </div>
-          ${dueFmt ? `<span class="task-card-due ${isOverdue ? 'overdue' : ''}">📅 ${dueFmt}</span>` : ''}
-          <div class="task-card-actions">
-            <button class="task-card-action-btn" title="Edit" onclick="Board.openEditModal('${task.id}')">✏️</button>
-            <button class="task-card-action-btn" title="Delete" onclick="Board.deleteTask('${task.id}')">🗑️</button>
-          </div>
-        </div>
-      </div>
-    `;
-  },
+    board.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const col = e.target.closest('.board-column');
+      if (col) col.classList.add('drag-over');
+    });
 
-  matchesFilter(task) {
-    if (this.filter === 'all') return true;
-    return task.priority === this.filter;
+    board.addEventListener('dragleave', (e) => {
+      const col = e.target.closest('.board-column');
+      if (col) col.classList.remove('drag-over');
+    });
+
+    board.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const col = e.target.closest('.board-column');
+      if (col && this.draggedTaskId) {
+        col.classList.remove('drag-over');
+        this.moveTask(this.draggedTaskId, col.dataset.status);
+      }
+    });
+
+    // Clicks
+    board.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('.column-add-btn');
+      if (addBtn) this.openCreateModal(addBtn.dataset.status);
+
+      const editBtn = e.target.closest('.btn-edit');
+      if (editBtn) this.openEditModal(editBtn.dataset.taskId);
+
+      const delBtn = e.target.closest('.btn-delete');
+      if (delBtn) this.deleteTask(delBtn.dataset.taskId);
+    });
+
+    // Modal click handling
+    const modal = document.getElementById('task-modal');
+    modal.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-backdrop') || e.target.closest('.modal-close')) {
+        this.closeModal();
+      }
+    });
   },
 
   bindFilters() {
-    document.querySelectorAll('#board-filters .board-filter-btn').forEach(btn => {
+    document.querySelectorAll('.board-filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('#board-filters .board-filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.board-filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.filter = btn.dataset.filter;
         this.render();
@@ -84,154 +87,187 @@ const Board = {
     });
   },
 
-  // Drag & Drop
-  onDragStart(e, taskId) {
-    e.dataTransfer.setData('text/plain', taskId);
-    e.target.classList.add('dragging');
+  render() {
+    const container = document.getElementById('board-columns');
+    if (!container) return;
+
+    const columns = [
+      { id: 'todo', name: 'To Do', color: 'var(--text-tertiary)' },
+      { id: 'in-progress', name: 'In Progress', color: 'var(--primary)' },
+      { id: 'done', name: 'Done', color: 'var(--success)' }
+    ];
+
+    container.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    columns.forEach(col => {
+      const tasks = Store.getTasksByStatus(col.id).filter(t => 
+        this.filter === 'all' || t.priority === this.filter
+      );
+
+      const colEl = h('div', { className: 'board-column', 'data-status': col.id },
+        h('div', { className: 'column-header' },
+          h('div', { className: 'column-title' },
+            h('span', { className: 'column-dot', style: { background: col.color } }),
+            h('span', { className: 'column-name' }, col.name),
+            h('span', { className: 'column-count' }, tasks.length)
+          )
+        ),
+        h('div', { className: 'column-cards' },
+          tasks.map(t => this.renderCard(t))
+        ),
+        h('button', { className: 'column-add-btn', 'data-status': col.id }, '+ Add task')
+      );
+      fragment.appendChild(colEl);
+    });
+
+    container.appendChild(fragment);
   },
-  onDragEnd(e) { e.target.classList.remove('dragging'); },
-  onDragOver(e) {
-    e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
+
+  renderCard(task) {
+    const member = Store.getMemberById(task.assignee);
+    return h('div', { 
+      className: 'task-card', 
+      draggable: 'true', 
+      'data-id': task.id,
+      tabIndex: '0',
+      role: 'button',
+      'aria-label': `Task: ${task.title}`
+    },
+      h('div', { className: 'task-card-header' },
+        h('span', { className: 'task-card-title' }, escapeHTML(task.title)),
+        h('span', { className: `task-card-priority ${task.priority}` }, task.priority)
+      ),
+      h('div', { className: 'task-card-footer' },
+        h('div', { className: 'task-card-assignee' },
+          member ? h('div', { className: 'avatar avatar-xs', style: { background: member.color } }, member.initials) : null,
+          member ? h('span', { className: 'task-card-assignee-name' }, member.name.split(' ')[0]) : null
+        ),
+        h('div', { className: 'task-card-actions' },
+          h('button', { className: 'task-card-action-btn btn-edit', 'data-task-id': task.id, title: 'Edit' }, 
+            h('span', { className: 'material-symbols-rounded' }, 'edit')
+          ),
+          h('button', { className: 'task-card-action-btn btn-delete', 'data-task-id': task.id, title: 'Delete' }, 
+            h('span', { className: 'material-symbols-rounded' }, 'delete')
+          )
+        )
+      )
+    );
   },
-  onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); },
-  onDrop(e, newStatus) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
-    const taskId = e.dataTransfer.getData('text/plain');
+
+  moveTask(taskId, newStatus) {
     const task = Store.data.tasks.find(t => t.id === taskId);
     if (task && task.status !== newStatus) {
-      const oldStatus = task.status;
-      Store.updateTask(taskId, { status: newStatus });
-      const member = Store.getMember(task.assignee);
-      Store.addActivity({
-        id: Store.nextId('a'), user: task.assignee,
-        action: `moved task to ${this.getStatusLabel(newStatus)}`,
-        target: task.title, type: 'task',
-        time: new Date().toISOString()
-      });
-      App.toast(`Task moved to ${this.getStatusLabel(newStatus)}`, 'success');
+      task.status = newStatus;
+      Store.save();
       this.render();
+      App.toast('Task moved to ' + newStatus, 'success');
     }
   },
 
-  getStatusLabel(s) {
-    const map = { todo: 'To Do', progress: 'In Progress', review: 'In Review', done: 'Done' };
-    return map[s] || s;
-  },
-
-  // Create / Edit Modal
   openCreateModal(status = 'todo') {
-    this.showModal({ status, title: '', desc: '', priority: 'medium', assignee: '', tags: '', due: '' }, false);
+    this.renderModal({ status });
   },
 
   openEditModal(taskId) {
     const task = Store.data.tasks.find(t => t.id === taskId);
-    if (task) this.showModal({ ...task, tags: (task.tags || []).join(', ') }, true);
+    if (task) this.renderModal(task, true);
   },
 
-  showModal(data, isEdit) {
-    const members = Store.data.members;
+  renderModal(data, isEdit = false) {
     const modal = document.getElementById('task-modal');
-    modal.innerHTML = `
-      <div class="modal-backdrop" onclick="Board.closeModal()">
-        <div class="modal" onclick="event.stopPropagation()">
-          <div class="modal-header">
-            <h3 class="modal-title">${isEdit ? 'Edit Task' : 'New Task'}</h3>
-            <button class="modal-close" onclick="Board.closeModal()">✕</button>
-          </div>
-          <div class="modal-body">
-            <div class="input-group">
-              <label class="input-label">Title</label>
-              <input class="input-field" id="task-title" value="${data.title || ''}" placeholder="Task title...">
-            </div>
-            <div class="input-group">
-              <label class="input-label">Description</label>
-              <textarea class="input-field" id="task-desc" placeholder="Describe the task...">${data.desc || ''}</textarea>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
-              <div class="input-group">
-                <label class="input-label">Priority</label>
-                <select class="select-field" id="task-priority">
-                  <option value="low" ${data.priority === 'low' ? 'selected' : ''}>Low</option>
-                  <option value="medium" ${data.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                  <option value="high" ${data.priority === 'high' ? 'selected' : ''}>High</option>
-                  <option value="critical" ${data.priority === 'critical' ? 'selected' : ''}>Critical</option>
-                </select>
-              </div>
-              <div class="input-group">
-                <label class="input-label">Assignee</label>
-                <select class="select-field" id="task-assignee">
-                  <option value="">Unassigned</option>
-                  ${members.map(m => `<option value="${m.id}" ${data.assignee === m.id ? 'selected' : ''}>${m.name}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
-              <div class="input-group">
-                <label class="input-label">Due Date</label>
-                <input class="input-field" type="date" id="task-due" value="${data.due || ''}">
-              </div>
-              <div class="input-group">
-                <label class="input-label">Tags (comma separated)</label>
-                <input class="input-field" id="task-tags" value="${data.tags || ''}" placeholder="e.g. bug, frontend">
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="Board.closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="Board.saveTask('${isEdit ? data.id : ''}', '${data.status}')">${isEdit ? 'Save Changes' : 'Create Task'}</button>
-          </div>
-        </div>
-      </div>
-    `;
+    modal.innerHTML = '';
+    
+    const members = Store.data.members;
+
+    const modalEl = h('div', { className: 'modal-backdrop' },
+      h('div', { className: 'modal', onClick: e => e.stopPropagation() },
+        h('div', { className: 'modal-header' },
+          h('h3', { className: 'modal-title' }, isEdit ? 'Edit Task' : 'New Task'),
+          h('button', { className: 'modal-close', ariaLabel: 'Close' }, '✕')
+        ),
+        h('div', { className: 'modal-body' },
+          h('div', { className: 'input-group' },
+            h('label', {}, 'Task Title'),
+            h('input', { type: 'text', id: 'task-title', value: data.title || '', placeholder: 'What needs to be done?' })
+          ),
+          h('div', { className: 'input-row' },
+            h('div', { className: 'input-group' },
+              h('label', {}, 'Priority'),
+              h('select', { id: 'task-priority' },
+                ['low', 'medium', 'high', 'critical'].map(p => 
+                  h('option', { value: p, selected: data.priority === p }, p.charAt(0).toUpperCase() + p.slice(1))
+                )
+              )
+            ),
+            h('div', { className: 'input-group' },
+              h('label', {}, 'Assignee'),
+              h('select', { id: 'task-assignee' },
+                members.map(m => h('option', { value: m.id, selected: data.assignee === m.id }, m.name))
+              )
+            )
+          )
+        ),
+        h('div', { className: 'modal-footer' },
+          h('button', { className: 'btn btn-ghost', onClick: () => this.closeModal() }, 'Cancel'),
+          h('button', { className: 'btn btn-primary', onClick: () => this.saveTask(isEdit ? data.id : null, data.status) }, isEdit ? 'Save Changes' : 'Create Task')
+        )
+      )
+    );
+
+    modal.appendChild(modalEl);
+    modal.classList.add('active');
+    document.getElementById('task-title').focus();
   },
 
-  closeModal() { document.getElementById('task-modal').innerHTML = ''; },
+  closeModal() {
+    const modal = document.getElementById('task-modal');
+    modal.classList.remove('active');
+    modal.innerHTML = '';
+  },
 
   saveTask(existingId, status) {
-    const title = document.getElementById('task-title').value.trim();
-    if (!title) { App.toast('Please enter a task title', 'error'); return; }
+    const title = document.getElementById('task-title').value;
+    const priority = document.getElementById('task-priority').value;
+    const assignee = document.getElementById('task-assignee').value;
 
-    const taskData = {
-      title,
-      desc: document.getElementById('task-desc').value.trim(),
-      priority: document.getElementById('task-priority').value,
-      assignee: document.getElementById('task-assignee').value,
-      due: document.getElementById('task-due').value,
-      tags: document.getElementById('task-tags').value.split(',').map(t => t.trim()).filter(Boolean),
-      status
-    };
+    const taskData = { title, priority, assignee, status };
+    
+    // Security Pattern: Use Validation utility before saving
+    const validation = Validation.task(taskData);
+    if (!validation.valid) {
+      App.toast(validation.errors[0], 'error');
+      return;
+    }
 
     if (existingId) {
-      Store.updateTask(existingId, taskData);
+      const idx = Store.data.tasks.findIndex(t => t.id === existingId);
+      Store.data.tasks[idx] = { ...Store.data.tasks[idx], ...taskData };
       App.toast('Task updated', 'success');
     } else {
-      taskData.id = Store.nextId('t');
-      taskData.created = new Date().toISOString().split('T')[0];
-      Store.addTask(taskData);
-      Store.addActivity({
-        id: Store.nextId('a'), user: Store.data.currentUser.id,
-        action: 'created task', target: title, type: 'task',
-        time: new Date().toISOString()
-      });
+      const newTask = {
+        id: 't' + Date.now(),
+        ...taskData,
+        tags: [],
+        due: new Date().toISOString().split('T')[0]
+      };
+      Store.data.tasks.push(newTask);
       App.toast('Task created', 'success');
     }
+
+    Store.save();
     this.closeModal();
     this.render();
   },
 
   deleteTask(id) {
-    const task = Store.data.tasks.find(t => t.id === id);
-    if (task && confirm('Delete this task?')) {
-      Store.deleteTask(id);
-      Store.addActivity({
-        id: Store.nextId('a'), user: Store.data.currentUser.id,
-        action: 'deleted task', target: task.title, type: 'task',
-        time: new Date().toISOString()
-      });
-      App.toast('Task deleted', 'info');
+    if (confirm('Are you sure you want to delete this task?')) {
+      Store.data.tasks = Store.data.tasks.filter(t => t.id !== id);
+      Store.save();
       this.render();
+      App.toast('Task deleted', 'info');
     }
   }
 };
+
+export default Board;

@@ -1,128 +1,105 @@
-/* Nebula — Workflow Builder */
+/* Nebula — Workflows Page */
+import Store from './store.js';
+import { escapeHTML, h } from './utils.js';
+
 const Workflow = {
-  activeWorkflow: null,
-  view: 'pipelines',
+  activeWorkflowId: 'wf1',
 
   init() {
-    this.activeWorkflow = Store.data.activeWorkflow || 'wf1';
     this.render();
+    this.attachEvents();
+  },
+
+  attachEvents() {
+    const container = document.getElementById('workflow-content');
+    if (!container) return;
+
+    container.addEventListener('click', (e) => {
+      const card = e.target.closest('.workflow-card');
+      if (card) {
+        this.activeWorkflowId = card.dataset.id;
+        this.render();
+      }
+
+      const step = e.target.closest('.workflow-step-node');
+      if (step) {
+        this.toggleStep(step.dataset.workflowId, step.dataset.stepId);
+      }
+    });
   },
 
   render() {
     const container = document.getElementById('workflow-content');
-    const workflows = Store.data.workflows;
-    const active = workflows.find(w => w.id === this.activeWorkflow) || workflows[0];
+    if (!container) return;
 
-    container.innerHTML = `
-      <div class="workflow-header">
-        <div class="workflow-tabs">
-          <button class="workflow-tab ${this.view === 'pipelines' ? 'active' : ''}" onclick="Workflow.setView('pipelines')">Pipelines</button>
-          <button class="workflow-tab ${this.view === 'templates' ? 'active' : ''}" onclick="Workflow.setView('templates')">Templates</button>
-        </div>
-        <button class="btn btn-primary" onclick="Workflow.addStep()">+ Add Step</button>
-      </div>
+    container.innerHTML = '';
+    const fragment = document.createDocumentFragment();
 
-      ${this.view === 'templates' ? this.renderTemplates() : ''}
+    const sidebar = h('div', { className: 'workflow-sidebar' },
+      h('h3', { className: 'workflow-sidebar-title' }, 'Your Pipelines'),
+      h('div', { className: 'workflow-list' },
+        Store.data.workflows.map(wf => h('div', { 
+          className: `workflow-card ${wf.id === this.activeWorkflowId ? 'active' : ''}`,
+          'data-id': wf.id 
+        },
+          h('div', { className: 'workflow-card-icon' }, wf.icon),
+          h('div', { className: 'workflow-card-info' },
+            h('div', { className: 'workflow-card-name' }, wf.name),
+            h('div', { className: 'workflow-card-steps' }, `${wf.steps.length} steps`)
+          )
+        ))
+      )
+    );
 
-      <div class="workflow-templates" style="${this.view === 'templates' ? 'display:none' : ''}">
-        ${workflows.map(wf => `
-          <div class="workflow-template-card ${wf.id === this.activeWorkflow ? 'active' : ''}" onclick="Workflow.selectWorkflow('${wf.id}')">
-            <div class="workflow-template-icon" style="background:${wf.id === this.activeWorkflow ? 'hsla(250,80%,60%,0.15)' : 'var(--bg-surface)'}">${wf.icon}</div>
-            <div class="workflow-template-name">${wf.name}</div>
-            <div class="workflow-template-desc">${wf.desc}</div>
-            <div class="workflow-template-steps">${wf.steps.length} steps · ${wf.steps.filter(s => s.status === 'completed').length} completed</div>
-          </div>
-        `).join('')}
-      </div>
+    const activeWf = Store.data.workflows.find(w => w.id === this.activeWorkflowId);
+    const viewer = h('div', { className: 'workflow-viewer' },
+      h('div', { className: 'workflow-viewer-header' },
+        h('div', { className: 'workflow-viewer-icon' }, activeWf.icon),
+        h('div', {},
+          h('h2', { className: 'workflow-viewer-name' }, activeWf.name),
+          h('p', { className: 'workflow-viewer-desc' }, activeWf.desc)
+        )
+      ),
+      h('div', { className: 'workflow-pipeline' },
+        activeWf.steps.map((step, i) => this.renderStep(activeWf.id, step, i === activeWf.steps.length - 1))
+      )
+    );
 
-      <div class="workflow-pipeline">
-        <div class="workflow-pipeline-title">
-          ${active.icon} ${active.name}
-          <span class="badge badge-primary" style="margin-left:8px">${active.steps.filter(s => s.status === 'completed').length}/${active.steps.length} complete</span>
-        </div>
-        <div class="workflow-steps">
-          ${active.steps.map((step, i) => `
-            ${i > 0 ? `<div class="workflow-connector"><div class="workflow-connector-line ${active.steps[i-1].status === 'completed' ? 'completed' : ''}"></div></div>` : ''}
-            <div class="workflow-step">
-              <div class="workflow-step-node ${step.status}" onclick="Workflow.cycleStepStatus('${active.id}', '${step.id}')">
-                <div class="workflow-step-icon">${step.icon}</div>
-                <div class="workflow-step-name">${step.name}</div>
-                <div class="workflow-step-status ${step.status}">
-                  ${step.status === 'completed' ? '✓ Completed' : step.status === 'active' ? '● In Progress' : '○ Pending'}
-                </div>
-              </div>
-            </div>
-          `).join('')}
-          <div class="workflow-add-step">
-            <button class="workflow-add-step-btn" onclick="Workflow.addStep()" title="Add step">+</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const layout = h('div', { className: 'workflow-layout' }, sidebar, viewer);
+    fragment.appendChild(layout);
+    container.appendChild(fragment);
   },
 
-  renderTemplates() {
-    const templates = [
-      { name: 'Agile Sprint', icon: '🏃', desc: 'Standard 2-week agile sprint process', steps: 5 },
-      { name: 'Release Cycle', icon: '📦', desc: 'Software release and deployment pipeline', steps: 6 },
-      { name: 'Design Review', icon: '🎨', desc: 'Design critique and approval flow', steps: 4 },
-      { name: 'Incident Response', icon: '🚨', desc: 'Production incident handling process', steps: 5 },
-      { name: 'Feature Request', icon: '💡', desc: 'Feature request evaluation pipeline', steps: 4 },
-      { name: 'Code Review', icon: '🔍', desc: 'Pull request review workflow', steps: 3 }
-    ];
-    return `
-      <div class="workflow-templates">
-        ${templates.map(t => `
-          <div class="workflow-template-card" onclick="App.toast('Template applied!', 'success')">
-            <div class="workflow-template-icon" style="background:var(--bg-surface)">${t.icon}</div>
-            <div class="workflow-template-name">${t.name}</div>
-            <div class="workflow-template-desc">${t.desc}</div>
-            <div class="workflow-template-steps">${t.steps} steps</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
+  renderStep(workflowId, step, isLast) {
+    return h('div', { className: 'workflow-step-container' },
+      h('div', { 
+        className: `workflow-step-node ${step.status}`,
+        'data-workflow-id': workflowId,
+        'data-step-id': step.id
+      },
+        h('div', { className: 'workflow-step-icon' }, step.icon),
+        h('div', { className: 'workflow-step-info' },
+          h('div', { className: 'workflow-step-name' }, step.name),
+          h('div', { className: 'workflow-step-status' }, step.status.replace('-', ' '))
+        )
+      ),
+      !isLast ? h('div', { className: 'workflow-step-arrow' }, 
+        h('span', { className: 'material-symbols-rounded' }, 'arrow_forward')
+      ) : null
+    );
   },
 
-  setView(view) {
-    this.view = view;
-    this.render();
-  },
-
-  selectWorkflow(id) {
-    this.activeWorkflow = id;
-    Store.data.activeWorkflow = id;
-    Store.save(Store.data);
-    this.render();
-  },
-
-  cycleStepStatus(wfId, stepId) {
-    const wf = Store.data.workflows.find(w => w.id === wfId);
-    if (!wf) return;
+  toggleStep(workflowId, stepId) {
+    const wf = Store.data.workflows.find(w => w.id === workflowId);
     const step = wf.steps.find(s => s.id === stepId);
-    if (!step) return;
-    const cycle = { pending: 'active', active: 'completed', completed: 'pending' };
-    step.status = cycle[step.status] || 'pending';
-    Store.save(Store.data);
-    Store.addActivity({
-      id: Store.nextId('a'), user: Store.data.currentUser.id,
-      action: `updated workflow step to ${step.status}`,
-      target: `${wf.name} — ${step.name}`, type: 'workflow',
-      time: new Date().toISOString()
-    });
-    App.toast(`${step.name}: ${step.status}`, 'info');
-    this.render();
-  },
-
-  addStep() {
-    const name = prompt('Step name:');
-    if (!name) return;
-    const icon = prompt('Step emoji icon:', '📌') || '📌';
-    const wf = Store.data.workflows.find(w => w.id === this.activeWorkflow);
-    if (!wf) return;
-    wf.steps.push({ id: Store.nextId('ws'), name, icon, status: 'pending' });
-    Store.save(Store.data);
-    App.toast('Step added', 'success');
+    
+    const statusCycle = ['pending', 'active', 'completed'];
+    const nextIdx = (statusCycle.indexOf(step.status) + 1) % statusCycle.length;
+    step.status = statusCycle[nextIdx];
+    
+    Store.save();
     this.render();
   }
 };
+
+export default Workflow;
