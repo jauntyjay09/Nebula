@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Nebula — A premium team collaboration and workflow management tool. Organize tasks, communicate, and streamline your team's workflow.">
+  <title>Nebula — Team Collaboration & Workflow</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/board.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <link rel="stylesheet" href="css/workflow.css">
+  <link rel="stylesheet" href="css/team.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/activity.css">
+</head>
+<body>
+  <!-- Background glow effects -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="app-layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">N</div>
+        <span class="sidebar-brand-name">Nebula</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Main</div>
+        <a class="sidebar-link active" data-page="dashboard" href="#dashboard" id="nav-dashboard">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="sidebar-link-label">Dashboard</span>
+        </a>
+        <a class="sidebar-link" data-page="board" href="#board" id="nav-board">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <span class="sidebar-link-label">Task Board</span>
+        </a>
+        <a class="sidebar-link" data-page="chat" href="#chat" id="nav-chat">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="sidebar-link-label">Team Chat</span>
+          <span class="sidebar-link-badge" id="chat-badge">9</span>
+        </a>
+        <a class="sidebar-link" data-page="workflows" href="#workflows" id="nav-workflows">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="sidebar-link-label">Workflows</span>
+        </a>
+
+        <div class="sidebar-section-label">Team</div>
+        <a class="sidebar-link" data-page="team" href="#team" id="nav-team">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="sidebar-link-label">Team</span>
+        </a>
+        <a class="sidebar-link" data-page="activity" href="#activity" id="nav-activity">
+          <svg class="sidebar-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="sidebar-link-label">Activity</span>
+          <span class="sidebar-link-badge">3</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar">AM</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Alex Morgan</div>
+          <div class="sidebar-user-role">Product Manager</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="app-main">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <h1 class="header-page-title" id="page-title">Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg class="header-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="global-search" placeholder="Search anything..." aria-label="Global search">
+          </div>
+          <button class="header-icon-btn" id="btn-notifications" title="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notification-dot"></span>
+          </button>
+          <button class="header-icon-btn" id="btn-reset" title="Reset demo data" onclick="Store.reset();location.reload();">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="app-content">
+
+        <!-- Dashboard Page -->
+        <section class="page-section active" id="page-dashboard">
+          <div id="dashboard-content"></div>
+        </section>
+
+        <!-- Board Page -->
+        <section class="page-section" id="page-board">
+          <div class="board-header">
+            <div class="board-filters" id="board-filters">
+              <button class="board-filter-btn active" data-filter="all">All</button>
+              <button class="board-filter-btn" data-filter="critical">Critical</button>
+              <button class="board-filter-btn" data-filter="high">High</button>
+              <button class="board-filter-btn" data-filter="medium">Medium</button>
+              <button class="board-filter-btn" data-filter="low">Low</button>
+            </div>
+            <button class="btn btn-primary" onclick="Board.openCreateModal()">+ New Task</button>
+          </div>
+          <div class="board-columns" id="board-columns"></div>
+          <div id="task-modal"></div>
+        </section>
+
+        <!-- Chat Page -->
+        <section class="page-section" id="page-chat">
+          <div class="chat-layout" style="height:calc(100vh - var(--header-height) - 48px);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle)">
+            <div class="chat-sidebar">
+              <div class="chat-sidebar-header">
+                <div class="chat-sidebar-title">Channels</div>
+              </div>
+              <div class="chat-channel-list" id="chat-channel-list"></div>
+            </div>
+            <div class="chat-main">
+              <div class="chat-header">
+                <div class="chat-header-info">
+                  <span class="chat-header-channel" id="chat-header-channel">#general</span>
+                  <span class="chat-header-desc" id="chat-header-desc">General team discussions</span>
+                </div>
+              </div>
+              <div class="chat-messages" id="chat-messages"></div>
+              <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                  <textarea class="chat-input" id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+                  <button class="chat-send-btn" id="chat-send-btn" title="Send message">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Workflows Page -->
+        <section class="page-section" id="page-workflows">
+          <div id="workflow-content"></div>
+        </section>
+
+        <!-- Team Page -->
+        <section class="page-section" id="page-team">
+          <div id="team-content"></div>
+        </section>
+
+        <!-- Activity Page -->
+        <section class="page-section" id="page-activity">
+          <div id="activity-content"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/store.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/workflow.js"></script>
+  <script src="js/team.js"></script>
+  <script src="js/activity.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

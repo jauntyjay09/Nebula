@@ -1,0 +1,25 @@
+/* Team directory styles */
+.team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); flex-wrap: wrap; gap: var(--space-md); }
+.team-stats { display: flex; gap: var(--space-lg); }
+.team-stat { text-align: center; }
+.team-stat-value { font-size: var(--font-2xl); font-weight: 800; background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.team-stat-label { font-size: var(--font-xs); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+.team-filters { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.team-filter { padding: 6px 14px; border-radius: var(--radius-pill); font-size: var(--font-xs); font-weight: 500; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer; transition: all var(--transition-fast); }
+.team-filter:hover { border-color: var(--border-default); color: var(--text-primary); }
+.team-filter.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-md); }
+.team-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: var(--space-lg); transition: all var(--transition-base); animation: fadeInUp 300ms ease; cursor: pointer; backdrop-filter: blur(var(--glass-blur)); }
+.team-card:hover { border-color: var(--border-default); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.team-card-header { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md); }
+.team-card-avatar { position: relative; }
+.team-card-status { position: absolute; bottom: 0; right: 0; }
+.team-card-info { flex: 1; min-width: 0; }
+.team-card-name { font-size: var(--font-md); font-weight: 600; margin-bottom: 2px; }
+.team-card-role { font-size: var(--font-sm); color: var(--text-secondary); }
+.team-card-dept { display: inline-flex; margin-top: var(--space-sm); }
+.team-card-meta { display: flex; align-items: center; justify-content: space-between; padding-top: var(--space-md); border-top: 1px solid var(--border-subtle); }
+.team-card-tasks { font-size: var(--font-xs); color: var(--text-tertiary); }
+.team-card-tasks strong { color: var(--text-secondary); }
+.team-card-actions { display: flex; gap: 4px; }
